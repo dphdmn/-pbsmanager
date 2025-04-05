@@ -619,7 +619,7 @@ bool hasFileChanged(const std::string& pb_file) {
 
     // Get metadata of the file (last time it was changed)
     if (stat(pb_file.c_str(), &file_stat) != 0) {
-        std::cerr << "Failed to get file metadata.\n";
+        std::cerr << "Could not access Slidysim PB file.\nPlease make sure you are running this\nFrom your Slidysim folder.\n";
         return false;
     }
 
