@@ -9,7 +9,7 @@
                 "${file}",
                 "${fileDirname}\\resources.o",
                 "-o",
-                "${fileDirname}\\release\\Slidysim30.0_v1.1.exe",
+                "${fileDirname}\\release\\Slidysim30.0_v1.2_BETA.exe",
                 "-lz", //1 Compression library (e.g., zlib)
                 "-lgdi32", //2 Graphics Device Interface for Windows
                 "-lb64", //3 Base64 encoding library

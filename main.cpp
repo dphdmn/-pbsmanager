@@ -30,6 +30,7 @@
 #include <limits>
 #include <conio.h> // For _kbhit() and _getch() on Windows
 #include <filesystem>
+#include <cstdint> // Required for int64_t
 
 const int move_times_limit = 11000;
 // Global variable
@@ -86,7 +87,7 @@ void createIndex() {
     sqlite3_close(db);
 }
 
-std::string getMoveTimes(int time, int moves, const std::string& timestamp, int avglen, int solve_type) {
+std::string getMoveTimes(int64_t time, int64_t moves, const std::string& timestamp, int avglen, int solve_type) {
     sqlite3* db;
     sqlite3_stmt* stmt;
     std::string result = "[";  // Start the result with an opening bracket
@@ -175,19 +176,19 @@ std::string getMoveTimes(int time, int moves, const std::string& timestamp, int 
      // Bind the parameters
     if (avglen == 1 && solve_type == 1){
         sqlite3_bind_text(stmt, 1, timestamp.c_str(), -1, SQLITE_STATIC);
-        sqlite3_bind_int(stmt, 2, time);
-        sqlite3_bind_int(stmt, 3, moves);
+        sqlite3_bind_int64(stmt, 2, time);
+        sqlite3_bind_int64(stmt, 3, moves);
     }
     else if (avglen == 1) {
-        sqlite3_bind_int(stmt, 1, time);
-        sqlite3_bind_int(stmt, 2, moves);
+        sqlite3_bind_int64(stmt, 1, time);
+        sqlite3_bind_int64(stmt, 2, moves);
         sqlite3_bind_text(stmt, 3, timestamp.c_str(), -1, SQLITE_STATIC);
     } else {
-        sqlite3_bind_int(stmt, 1, time);
-        sqlite3_bind_int(stmt, 2, moves);
+        sqlite3_bind_int64(stmt, 1, time);
+        sqlite3_bind_int64(stmt, 2, moves);
         sqlite3_bind_text(stmt, 3, timestamp.c_str(), -1, SQLITE_STATIC);
-        sqlite3_bind_int(stmt, 4, time);
-        sqlite3_bind_int(stmt, 5, moves);
+        sqlite3_bind_int64(stmt, 4, time);
+        sqlite3_bind_int64(stmt, 5, moves);
         sqlite3_bind_text(stmt, 6, timestamp.c_str(), -1, SQLITE_STATIC);
     }
     // Execute the statement and process the results
@@ -255,8 +256,8 @@ struct ResultEntry {
     int average_type;             // int
     int control_type;             // int
     int pb_type;                  // int
-    int main_time;                // int
-    int main_moves;               // int
+    int64_t main_time;                // int
+    int64_t main_moves;               // int
     int main_tps;                 // int (multiplied by 1000)
     std::vector<std::string> single_solutions; // vector of strings
     std::vector<float> single_times;           // vector of floats
@@ -732,7 +733,7 @@ std::string compress_string(const std::string& input_string) {
     return oss.str();
 }
 
-std::tuple<int, int, int, int, int, int, int, int, int, int, int, std::string, std::string, int, int>
+std::tuple<int, int, int, int, int, int, int, int, int64_t, int64_t, int, std::string, std::string, int, int>
 processResultEntry(const ResultEntry& entry) {
     // Prepare solutions_data
     std::ostringstream solutionsStream;
@@ -771,8 +772,8 @@ processResultEntry(const ResultEntry& entry) {
     if (!entry.single_solutions.empty()) {
         if (solutions.size() < move_times_limit){
             int avglen = entry.average_type;
-            int time_prepared;
-            int moves_prepared;
+            int64_t time_prepared;
+            int64_t moves_prepared;
             if (avglen > 1){
                 time_prepared = entry.single_times.back();
                 moves_prepared = entry.single_moves.back();
@@ -871,8 +872,8 @@ void insertResults(const std::string& dbName, const std::vector<ResultEntry>& en
         sqlite3_bind_int(insert_stmt, 6, std::get<5>(processed_result));
         sqlite3_bind_int(insert_stmt, 7, std::get<6>(processed_result));
         sqlite3_bind_int(insert_stmt, 8, std::get<7>(processed_result));
-        sqlite3_bind_int(insert_stmt, 9, std::get<8>(processed_result));
-        sqlite3_bind_int(insert_stmt, 10, std::get<9>(processed_result));
+        sqlite3_bind_int64(insert_stmt, 9, std::get<8>(processed_result));
+        sqlite3_bind_int64(insert_stmt, 10, std::get<9>(processed_result));
         sqlite3_bind_int(insert_stmt, 11, std::get<10>(processed_result));
         sqlite3_bind_text(insert_stmt, 12, std::get<11>(processed_result).c_str(), -1, SQLITE_TRANSIENT);
         sqlite3_bind_text(insert_stmt, 13, std::get<12>(processed_result).c_str(), -1, SQLITE_TRANSIENT);
@@ -1243,8 +1244,8 @@ std::pair<std::vector<ResultEntry>, std::vector<std::string>> parse_data_from_pb
                 }
 
                 // Extract solving times and moves
-                int one_solve_final_time = std::stoi(data[0]);
-                int one_solve_final_moves = std::stoi(data[1]);
+                int64_t one_solve_final_time = std::stoll(data[0]);  // Replaces std::stoi
+                int64_t one_solve_final_moves = std::stoll(data[1]); // Replaces std::stoi
                 if (one_solve_final_moves < 0){
                     one_solve_final_moves = -1;
                 }
@@ -1324,8 +1325,18 @@ std::pair<std::vector<ResultEntry>, std::vector<std::string>> parse_data_from_pb
 
                 bool broken_tps = (std::find(one_solve_moves.begin(), one_solve_moves.end(), -1) != one_solve_moves.end()) && pb_type == 3;
 
-                int one_solve_final_time  = std::accumulate(one_solve_times.begin(), one_solve_times.end(), 0);
-                int one_solve_final_moves = std::accumulate(one_solve_moves.begin(), one_solve_moves.end(), 0);
+                // Use 64-bit accumulation to prevent overflow
+                int64_t one_solve_final_time = std::accumulate(
+                    one_solve_times.begin(), 
+                    one_solve_times.end(), 
+                    int64_t{0}  // Start with 64-bit zero
+                );
+
+                int64_t one_solve_final_moves = std::accumulate(
+                    one_solve_moves.begin(),
+                    one_solve_moves.end(),
+                    int64_t{0}  // Start with 64-bit zero
+                );
                 if (one_solve_final_moves < 0){
                     one_solve_final_moves = -1;
                 }
@@ -1365,12 +1376,12 @@ std::pair<std::vector<ResultEntry>, std::vector<std::string>> parse_data_from_pb
             if (!bad_data){
                 auto min_time = *std::min_element(single_times.begin(), single_times.end());
                 auto max_time = *std::max_element(single_times.begin(), single_times.end());
-                main_time = std::accumulate(single_times.begin(), single_times.end(), 0.0) - min_time - max_time;
+                main_time = std::accumulate(single_times.begin(), single_times.end(), int64_t{0}) - min_time - max_time;
                 main_time /= (single_times.size() - 2);
 
                 auto min_moves = *std::min_element(single_moves.begin(), single_moves.end());
                 auto max_moves = *std::max_element(single_moves.begin(), single_moves.end());
-                main_moves = std::accumulate(single_moves.begin(), single_moves.end(), 0) - min_moves - max_moves;
+                main_moves = std::accumulate(single_moves.begin(), single_moves.end(), int64_t{0}) - min_moves - max_moves;
                 main_moves /= (single_moves.size() - 2);
 
                 auto min_tps = *std::min_element(single_tps.begin(), single_tps.end());
@@ -1390,11 +1401,11 @@ std::pair<std::vector<ResultEntry>, std::vector<std::string>> parse_data_from_pb
             }
         }else {
             if (!single_times.empty()) {
-                main_time = std::accumulate(single_times.begin(), single_times.end(), 0) / static_cast<float>(single_times.size());
+                main_time = std::accumulate(single_times.begin(), single_times.end(), int64_t{0}) / static_cast<float>(single_times.size());
             }
 
             if (!single_moves.empty()) {
-                main_moves = std::accumulate(single_moves.begin(), single_moves.end(), 0) / static_cast<float>(single_moves.size());
+                main_moves = std::accumulate(single_moves.begin(), single_moves.end(), int64_t{0}) / static_cast<float>(single_moves.size());
             }
 
             if (!single_tps.empty()) {
@@ -1417,8 +1428,8 @@ std::pair<std::vector<ResultEntry>, std::vector<std::string>> parse_data_from_pb
             average_type, //int 
             control_type, //int 
             pb_type, //int 
-            static_cast<int>(main_time), //int 
-            static_cast<int>(main_moves), //int 
+            static_cast<int64_t>(main_time), //int 
+            static_cast<int64_t>(main_moves), //int 
             static_cast<int>(round(main_tps * 1000)), //int 
             single_solutions, //vectors of strings 
             single_times, //vectors of floats
@@ -1907,7 +1918,7 @@ void initAutoUpdateCycle(){
 int main() {
     createIndex();
     disableQuickEditMode();
-    SetConsoleTitle("Slidysim Records Manager (1.1.0)");
+    SetConsoleTitle("Slidysim Records Manager (1.2 BETA)");
     SetConsoleOutputCP(CP_UTF8);
     resizeConsole(50, 50);
     system("cls");
