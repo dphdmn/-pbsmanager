@@ -1,0 +1,44 @@
+{
+    "tasks": [
+        {
+            "type": "cppbuild",
+            "label": "C/C++: g++.exe build active file",
+            "command": "C:\\msys64\\mingw64\\bin\\g++.exe",
+            "args": [
+                "-fdiagnostics-color=always",
+                "${file}",
+                "${fileDirname}\\resources.o",
+                "-o",
+                "${fileDirname}\\release\\Slidysim30.0_v1.1.exe",
+                "-lz", //1 Compression library (e.g., zlib)
+                "-lgdi32", //2 Graphics Device Interface for Windows
+                "-lb64", //3 Base64 encoding library
+                
+                "-lssl", //4ssl1 OpenSSL for SSL/TLS
+                "-lcrypto", //4ssl2 OpenSSL cryptography library
+                "-lcrypt32", //4ssl3 Windows Crypto API
+                "-lws2_32", //4ssl4 Windows Sockets library
+
+                "-lsqlite3", //5 SQLite library
+
+                "-O2", // Higher optimization level for better size and speed
+                "-s", // Strip unnecessary symbols from the binary (e.g., debugging information)
+                "-flto", // Enable Link-Time Optimization for smaller and faster binaries
+                "-static", // Create a standalone executable without dependencies
+                //"-march=native", // Optimize for the host machine's architecture (if portability isn't a concern)
+                "-fdata-sections", // Store data in separate sections for removal during linking
+                "-ffunction-sections", // Store functions in separate sections for removal during linking
+                "-Wl,--gc-sections" // Remove unused sections during the linking phase
+            ],
+            "options": {
+                "cwd": "C:\\msys64\\mingw64\\bin"
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "group": "build",
+            "detail": "Main."
+        },
+    ],
+    "version": "2.0.0"
+}
