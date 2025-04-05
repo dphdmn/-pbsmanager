@@ -13,7 +13,6 @@
 #include <b64/encode.h>
 #include <b64/decode.h>
 #include <stdexcept>
-#include <fstream>
 #include <sys/stat.h>  // For checking file size and existence
 #include <unistd.h>  // For getcwd function
 #include <windows.h>   // For GetModuleFileName
@@ -661,11 +660,6 @@ bool update_uploaded_status(const std::string& db_name) {
     sqlite3_close(db);
     return true;
 }
-
-#include <iostream>
-#include <fstream>
-#include <string>
-#include <httplib.h>
 
 bool upload_pbs_to_server(std::string serialized_data) {
     // Read the authorization token from 'credentials.dat'
